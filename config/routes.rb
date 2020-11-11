@@ -9,7 +9,6 @@ Rails.application.routes.draw do
 
   root to: "site#index"
 
-  mount StripeEvent::Engine, at: "/stripe"
   constraints lambda { |request| AuthConstraint.admin?(request) } do
     mount Sidekiq::Web => "sidekiq"
   end

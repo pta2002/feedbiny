@@ -1,7 +1,20 @@
-Feedbin
+Feedbiny
 =======
 
-Feedbin is a simple, fast and nice looking RSS reader.
+Feedbiny is a version of [feedbin](https://feedbin.com) with numerous patches to make self-hosting as painless as possible.
+
+Here is what has changed from the original version:
+ - Added a Dockerfile
+
+These features are planned:
+ - Remove all billing infrastructure
+ - Bundle refresher and image and content extracters.
+ - Make it possible to turn off signups.
+ - Create invite links
+ - Tweak things so that it uses as little memory and CPU as possible
+ - Allow replacing S3 with local storage without having to go through MinIO or similar
+ - Change the API to `example.com/api/` from `api.example.com`
+ - Drop the libv8/mini_racer dependency to make it easy to run on ARM
 
 ![Feedbin Screenshot](https://feedbin.github.io/files/feedbin_screenshot.jpeg)
 

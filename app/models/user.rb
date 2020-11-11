@@ -1,6 +1,5 @@
 class User < ApplicationRecord
-  attr_accessor :stripe_token, :old_password_valid, :update_auth_token,
-    :password_reset, :coupon_code, :is_trialing, :coupon_valid, :deleted
+  attr_accessor :old_password_valid, :update_auth_token, :password_reset, :deleted
 
   has_secure_password
 
@@ -47,12 +46,10 @@ class User < ApplicationRecord
     :feeds_width,
     :entries_width
 
-  has_one :coupon
   has_many :subscriptions, dependent: :delete_all
   has_many :feeds, through: :subscriptions
   has_many :entries, through: :feeds
   has_many :imports, dependent: :destroy
-  has_many :billing_events, as: :billable, dependent: :delete_all
   has_many :taggings, dependent: :delete_all
   has_many :tags, through: :taggings
   has_many :sharing_services, dependent: :delete_all
@@ -66,8 +63,6 @@ class User < ApplicationRecord
   has_many :updated_entries, dependent: :delete_all
   has_many :devices, dependent: :delete_all
   has_many :authentication_tokens, dependent: :delete_all
-  has_many :in_app_purchases
-  belongs_to :plan
 
   accepts_nested_attributes_for :sharing_services,
     allow_destroy: true,
@@ -79,21 +74,12 @@ class User < ApplicationRecord
   before_save :activate_subscriptions
   before_save { reset_auth_token }
 
-  before_create :create_customer, unless: -> { !ENV["STRIPE_API_KEY"] }
   before_create { generate_token(:starred_token) }
   before_create { generate_token(:inbound_email_token, 4) }
   before_create { generate_newsletter_token }
   before_create { generate_token(:page_token) }
 
-  before_update :update_billing, unless: -> { !ENV["STRIPE_API_KEY"] }
-  before_destroy :cancel_billing, unless: -> { !ENV["STRIPE_API_KEY"] }
-  before_destroy :create_deleted_user
-  before_destroy :record_stats
-
   validate :changed_password, on: :update, unless: ->(user) { user.password_reset }
-  validate :coupon_code_valid, on: :create, if: ->(user) { user.coupon_code }
-  validate :plan_type_valid, on: :update
-  validate :trial_plan_valid
 
   validates_presence_of :email
   validates_uniqueness_of :email, case_sensitive: false
@@ -131,31 +117,10 @@ class User < ApplicationRecord
   end
 
   def with_params(params)
-    if params[:coupon_code].present?
-      coupon = Coupon.find_by(coupon_code: params[:coupon_code])
-      self.coupon_valid = coupon.present? && !coupon.redeemed
-      self.coupon_code = params[:coupon_code]
-    end
-
-    if coupon_valid || !ENV["STRIPE_API_KEY"]
-      self.free_ok = true
-      self.plan = Plan.find_by_stripe_id("free")
-    else
-      self.plan = Plan.find_by_stripe_id("trial")
-    end
-
     if params[:user] && params[:user][:password]
       self.password_confirmation = params[:user][:password]
     end
     self
-  end
-
-  def schedule_trial_jobs
-    OnboardingMessage.perform_async(id, MarketingMailer.method(:onboarding_1_welcome).name.to_s)
-    OnboardingMessage.perform_in(3.days, id, MarketingMailer.method(:onboarding_2_mobile).name.to_s)
-    OnboardingMessage.perform_in(5.days, id, MarketingMailer.method(:onboarding_3_subscribe).name.to_s)
-    OnboardingMessage.perform_in(Feedbin::Application.config.trial_days.days - 1.days, id, MarketingMailer.method(:onboarding_4_expiring).name.to_s)
-    OnboardingMessage.perform_at(Feedbin::Application.config.trial_days.days.from_now + 1.days, id, MarketingMailer.method(:onboarding_5_expired).name.to_s)
   end
 
   def setting_on?(setting_symbol)
@@ -167,13 +132,7 @@ class User < ApplicationRecord
   end
 
   def activate_subscriptions
-    if paid_conversion?
-      subscriptions.update_all(active: true)
-    end
-  end
-
-  def paid_conversion?
-    plan_id_changed? && plan_id_was == Plan.find_by_stripe_id("trial").id
+    subscriptions.update_all(active: true)
   end
 
   def strip_email
@@ -191,60 +150,6 @@ class User < ApplicationRecord
   def tag_names
     feed_tags.each_with_object({}) do |tag, hash|
       hash[tag.id] = tag.name
-    end
-  end
-
-  def coupon_code_valid
-    coupon_record = Coupon.find_by_coupon_code(coupon_code)
-    if !coupon_record || coupon_record.redeemed
-      errors.add(:coupon_code, "is invalid")
-    end
-  end
-
-  def free_ok
-    @free_ok || plan_id_was == Plan.find_by_stripe_id("free").id
-  end
-
-  attr_writer :free_ok
-
-  def plan_type_valid
-    valid_plans = if free_ok
-      Plan.all.pluck(:id)
-    else
-      Plan.where(price_tier: price_tier).where.not(stripe_id: "free").pluck(:id)
-    end
-
-    valid_plans.append(plan_id_was)
-
-    unless valid_plans.include?(plan.id)
-      errors.add(:plan_id, "is invalid")
-    end
-  end
-
-  def available_plans
-    plan_stripe_id = plan.stripe_id
-    if plan_stripe_id == "trial"
-      Plan.where(price_tier: price_tier, stripe_id: ["basic-monthly", "basic-yearly", "basic-monthly-2", "basic-yearly-2", "basic-monthly-3", "basic-yearly-3"]).order("price DESC")
-    elsif plan_stripe_id == "free"
-      Plan.where(price_tier: price_tier)
-    else
-      exclude = ["free", "trial", "timed"]
-      Plan.where(price_tier: price_tier).where.not(stripe_id: exclude)
-    end
-  end
-
-  def timed_plan_expired?
-    timed_plan? && expires_at.past?
-  end
-
-  def timed_plan?
-    plan.stripe_id == "timed"
-  end
-
-  def trial_plan_valid
-    trial_plan = Plan.find_by_stripe_id("trial")
-    if plan_id == trial_plan.id && plan_id_was != trial_plan.id && !plan_id_was.nil?
-      errors.add(:plan_id, "is invalid")
     end
   end
 
@@ -277,52 +182,6 @@ class User < ApplicationRecord
     self.password_reset_sent_at = Time.now
     save!
     UserMailer.delay(queue: :critical).password_reset(id, token)
-  end
-
-  def create_customer
-    @stripe_customer = Customer.create(email, plan.stripe_id, trial_end)
-    self.customer_id = @stripe_customer.id
-    if coupon_code
-      coupon_record = Coupon.find_by_coupon_code(coupon_code)
-      coupon_record.update(redeemed: true)
-      self.coupon = coupon_record
-    end
-  end
-
-  def update_billing
-    if email_changed?
-      stripe_customer.update_email(email)
-    end
-
-    if stripe_token.present?
-      stripe_customer.update_source(stripe_token)
-      self.suspended = false
-      subscriptions.update_all(active: true)
-    end
-
-    if plan_id_changed?
-      stripe_customer.update_plan(plan.stripe_id, trial_end)
-    end
-
-    self.stripe_token = nil
-  rescue Stripe::StripeError => exception
-    Honeybadger.notify(exception)
-    errors.add :base, exception.message.to_s
-    self.stripe_token = nil
-    throw(:abort)
-  end
-
-  def stripe_customer
-    @stripe_customer ||= Customer.retrieve(customer_id)
-  end
-
-  def cancel_billing
-    customer = Stripe::Customer.retrieve(customer_id)
-    customer.delete
-  rescue Stripe::StripeError => e
-    logger.error "Stripe Error: " + e.message
-    errors.add :base, "#{e.message}."
-    CancelBilling.perform_async(customer_id)
   end
 
   def tag_group

@@ -93,14 +93,6 @@
                         <div class="splash">
                             <div class="splash-inner">
                                 <%= svg_tag "logo", inline: true %>
-                                <% if signed_in? && current_user.plan.stripe_id == 'trial' %>
-                                <div class="trial-time">
-                                    <div class="remaining-time"><%= pluralize(current_user.days_left, 'day') %> left</div>
-                                    <%= link_to settings_billing_path, class: 'button' do %>
-                                        Subscribe Now
-                                    <% end %>
-                                </div>
-                                <% end %>
                             </div>
                         </div>
 
