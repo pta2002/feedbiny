@@ -5,16 +5,22 @@ class UsersController < ApplicationController
   before_action :ensure_permission, only: [:update, :destroy]
 
   def new
-    @user = User.new.with_params(params)
+    if can_signup
+      @user = User.new.with_params(params)
+    end
   end
-
+  
   def create
-    @user = User.new(user_params).with_params(user_params)
-    if @user.save
-      Librato.increment("user.trial.signup")
-      flash[:one_time_content] = render_to_string(partial: "shared/register_protocol_handlers")
-      sign_in @user
-      redirect_to root_url
+    if can_signup
+      @user = User.new(user_params).with_params(user_params)
+      if @user.save
+        Librato.increment("user.trial.signup")
+        flash[:one_time_content] = render_to_string(partial: "shared/register_protocol_handlers")
+        sign_in @user
+        redirect_to root_url
+      else
+        render "new"
+      end
     else
       render "new"
     end
@@ -68,5 +74,9 @@ class UsersController < ApplicationController
 
   def user_params
     params.require(:user).permit(:email, :password, :stripe_token, :coupon_code, :plan_id)
+  end
+
+  def can_signup
+    ENV["FREE_SIGNUP"] || User.all.count == 0
   end
 end

@@ -4,6 +4,8 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     ruby
     ruby.devEnv
+    rubyPackages.railties
+    
     bundler
     postgresql
     libxml2

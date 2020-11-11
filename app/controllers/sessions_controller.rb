@@ -3,6 +3,7 @@ class SessionsController < ApplicationController
 
   def new
     redirect_to root_url if signed_in?
+    @can_signup = can_signup
   end
 
   def create
@@ -28,5 +29,9 @@ class SessionsController < ApplicationController
 
   def refresh
     head :ok
+  end
+
+  def can_signup
+    ENV["FREE_SIGNUP"] || User.all.count == 0
   end
 end

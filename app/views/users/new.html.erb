@@ -4,25 +4,34 @@
         <%= svg_tag "logo-full", inline: true %>
     </a>
     <div class="box">
-        <div data-behavior="stripe_error" class="alert alert-error hide"></div>
-        <h3 class="box-header">
-            <h3 class="box-header">Create your <strong>Free</strong> Feedbin Account</h3>
-        </h3>
-        <%= form_for @user, html: { class: 'combined-form', data: { behavior: 'credit_card_form' }, novalidate: true } do |f| %>
-            <% if @user.errors.present? %>
-                <div class="alert alert-error">
-                    <%= @user.errors.full_messages.join('. ') %>.
-                </div>
-            <% end %>
-            
-            <%= render "shared/input" do %>
-                <%= f.email_field :email, autofocus: true, placeholder: 'Email', tabindex: 1 %>
-            <% end %>
-            <%= render "shared/input" do %>
-                <%= f.password_field :password, placeholder: 'Password', tabindex: 2 %>
-            <% end %>
+        <% if @user %>
+            <h3 class="box-header">
+                <h3 class="box-header">Create your <strong>Free</strong> Feedbin Account</h3>
+            </h3>
+            <%= form_for @user, html: { class: 'combined-form', data: { behavior: 'credit_card_form' }, novalidate: true } do |f| %>
+                <% if @user.errors.present? %>
+                    <div class="alert alert-error">
+                        <%= @user.errors.full_messages.join('. ') %>.
+                    </div>
+                <% end %>
 
-            <button type="submit" class="button flex" tabindex="3">Sign Up</button>
+                <%= render "shared/input" do %>
+                    <%= f.email_field :email, autofocus: true, placeholder: 'Email', tabindex: 1 %>
+                <% end %>
+                <%= render "shared/input" do %>
+                    <%= f.password_field :password, placeholder: 'Password', tabindex: 2 %>
+                <% end %>
+
+                <button type="submit" class="button flex" tabindex="3">Sign Up</button>
+            <% end %>
+        <% else %>
+            <h3 class="box-header">
+                <h3 class="box-header">Signups disabled</h3>
+            </h3>
+
+            <p>
+                Public signups on this Feedbin instance have been disabled. If you were told to create an account here, please request an invite link.
+            </p>
         <% end %>
     </div>
     <p class="align-center x-large extra-muted">Already have an account? <%= link_to "Log In", login_path %></p>

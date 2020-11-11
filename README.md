@@ -5,14 +5,14 @@ Feedbiny is a version of [feedbin](https://feedbin.com) with numerous patches to
 
 Here is what has changed from the original version:
  - Added a Dockerfile
+ - Remove all billing infrastructure
 
 These features are planned:
- - Remove all billing infrastructure
+ - Allow replacing S3 with local storage without having to go through MinIO or similar
  - Bundle refresher and image and content extracters.
  - Make it possible to turn off signups.
  - Create invite links
  - Tweak things so that it uses as little memory and CPU as possible
- - Allow replacing S3 with local storage without having to go through MinIO or similar
  - Change the API to `example.com/api/` from `api.example.com`
  - Drop the libv8/mini_racer dependency to make it easy to run on ARM
 
