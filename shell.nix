@@ -1,21 +1,41 @@
 { pkgs ? import <nixpkgs> {} }:
-pkgs.mkShell {
+let
+  feedbiny = pkgs.bundlerEnv {
+    name = "feedbiny";
+    ruby = pkgs.ruby;
+    gemdir = ./.;
+
+    # mini_racer seems to be finding the wrong libv8 headers, which is definitely odd.
+    gemConfig = pkgs.defaultGemConfig // {
+      mini_racer = attrs: {
+        buildInputs = [ pkgs.v8 ];
+        dontBuild = false;
+        buildFlags = "--with-v8-dir=${pkgs.v8}";
+        patchPhase = ''
+          sed -i ./ext/mini_racer_extension/extconf.rb \
+              -e 's/^\$CPPFLAGS += " -std=c++0x"/$CPPFLAGS += " -x c++"\n\0/'
+        '';
+      };
+    };
+  };
+in pkgs.mkShell {
   # Honestly, using bundix just completely breaks when installing v8, so let's... not.
   buildInputs = with pkgs; [
     ruby
     ruby.devEnv
     rubyPackages.railties
+    rake
     
     bundler
     postgresql
     libxml2
     v8
-    python
-    which
     curl
     libidn
     imagemagick
     pkg-config
+
+    feedbiny
   ];
 
   shellHook = ''

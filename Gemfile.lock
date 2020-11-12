@@ -244,7 +244,6 @@ GEM
     css_parser (1.7.1)
       addressable
     curb (0.9.10)
-    dante (0.2.0)
     debug_inspector (0.0.3)
     docile (1.3.2)
     domain_name (0.5.20190701)
@@ -519,16 +518,6 @@ GEM
     standard (0.7)
       rubocop (= 0.92)
       rubocop-performance (= 1.8.1)
-    stripe (4.24.0)
-      faraday (~> 0.13)
-      net-http-persistent (~> 3.0)
-    stripe-ruby-mock (2.5.0)
-      dante (>= 0.2.0)
-      multi_json (~> 1.0)
-      stripe (>= 2.0.3)
-    stripe_event (2.3.1)
-      activesupport (>= 3.1)
-      stripe (>= 2.8, < 6)
     sync (0.5.0)
     term-ansicolor (1.7.1)
       tins (~> 1.0)
@@ -642,9 +631,6 @@ DEPENDENCIES
   silencer
   spring
   standard
-  stripe (~> 4.24.0)
-  stripe-ruby-mock (= 2.5.0)
-  stripe_event
   twitter!
   twitter-text
   uglifier
@@ -654,4 +640,4 @@ DEPENDENCIES
   will_paginate
 
 BUNDLED WITH
-   2.1.2
+   2.1.4
