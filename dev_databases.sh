@@ -11,6 +11,7 @@ catch() {
     podman kill $PODMAN_REDIS
 }
 
-sleep 2
+echo "Waiting 5s for startup..."
+sleep 5
 
 bundle exec rake db:setup

@@ -13,6 +13,11 @@ class UsersController < ApplicationController
   def create
     if can_signup
       @user = User.new(user_params).with_params(user_params)
+
+      if @first_user
+        @user.admin = true
+      end
+
       if @user.save
         Librato.increment("user.trial.signup")
         flash[:one_time_content] = render_to_string(partial: "shared/register_protocol_handlers")
@@ -77,6 +82,7 @@ class UsersController < ApplicationController
   end
 
   def can_signup
-    ENV["FREE_SIGNUP"] || User.all.count == 0
+    @first_user = User.all.count == 0
+    ENV["FREE_SIGNUP"] || @first_user
   end
 end

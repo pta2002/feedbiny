@@ -3,6 +3,7 @@ class SessionsController < ApplicationController
 
   def new
     redirect_to root_url if signed_in?
+    redirect_to signup_url if User.all.count == 0
     @can_signup = can_signup
   end
 

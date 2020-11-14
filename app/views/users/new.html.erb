@@ -6,8 +6,15 @@
     <div class="box">
         <% if @user %>
             <h3 class="box-header">
-                <h3 class="box-header">Create your <strong>Free</strong> Feedbin Account</h3>
+                <% if @first_user %>
+                    <h3 class="box-header">Welcome to Feedbiny</h3>
+                <% else %>
+                    <h3 class="box-header">Create your <strong>Free</strong> Feedbin Account</h3>
+                <% end %>
             </h3>
+            <% if @first_user %>
+                <p>This will be your main account, with admin powers. You will be able to invite other users once you create your account.</p>            
+            <% end %>
             <%= form_for @user, html: { class: 'combined-form', data: { behavior: 'credit_card_form' }, novalidate: true } do |f| %>
                 <% if @user.errors.present? %>
                     <div class="alert alert-error">
@@ -34,6 +41,8 @@
             </p>
         <% end %>
     </div>
-    <p class="align-center x-large extra-muted">Already have an account? <%= link_to "Log In", login_path %></p>
+    <% if !@first_user %>
+        <p class="align-center x-large extra-muted">Already have an account? <%= link_to "Log In", login_path %></p>
+    <% end %>
 </div>
 <%= render partial: 'shared/svg' %>
